@@ -1,0 +1,3 @@
+team:
+  join: You are now §{color}{name} §rTeam！
+  leave: You left §{color}{name} §rTeam

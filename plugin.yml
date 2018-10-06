@@ -1,0 +1,28 @@
+name: AreaPvP
+main: naoki1510\areapvp\AreaPvP
+version: 1.0.0 alpha
+api: 
+- 3.0.0
+- 4.0.0
+
+depend: ["EconomyAPI"]
+
+author: naoki1510
+description: A API of team
+website: https://github.com/naoki1510
+
+permissions:
+  areapvp.*:
+    default: op
+    description: 
+    children:
+      areapvp.command.*:
+        default: op
+        description: 
+        children:
+          areapvp.command.pvp:
+            default: true
+            description: 
+          areapvp.command.setsp:
+            default: op
+            description:

@@ -1,0 +1,11 @@
+team:
+  join: §{color}{name} §rチームに入りました！
+  leave: §{color}{name} §rチームから抜けました
+
+commands:
+  pvp:
+    usage: /pvp
+    description: Join / leave team.
+
+game:
+  lessplayers: エリアが有効になるにはあと{count} 人必要です。

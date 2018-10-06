@@ -1,0 +1,6 @@
+# Set default language
+# default available: ja, en
+language: ja
+
+worlds: 
+- pvp
