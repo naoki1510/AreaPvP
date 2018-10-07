@@ -39,7 +39,7 @@ class GameTask extends Task{
     public function onRun(int $currentTick) {
         if($this->areaPvP->isRunning()){
             $gameLevel = $this->areaPvP->getGameLevel();
-
+            $onlyteam = null;
             $teamsOnBlock = 0;
 
             foreach ($gameLevel->getPlayers() as $player) {
@@ -57,7 +57,9 @@ class GameTask extends Task{
                     } else {
                         if ($this->teamManager->isJoin($player)) {
                             $playerTeam = $this->teamManager->getTeamOf($player);
-                            $teamsOnBlock++;
+                            if ($onlyteam !== $playerTeam) {
+                                $teamsOnBlock++;
+                            }
                             if ($teamsOnBlock === 1) {
                                 $onlyTeam = $playerTeam;
                             }

@@ -204,8 +204,8 @@ class AreaPvP extends PluginBase implements Listener
         if ($entity instanceof Player
             && in_array($world->getName(), $this->getConfig()->get("world", ['pvp']))
             && $this->TeamManager->exists($entity)
-            && $block->getDamage() === $this->TeamManager->getTeamOf($entity)->getColor()['block']
-            && $block->getId() === Item::fromString($this->getConfig()->getNested('block.safe', 'stained_glass'))->getId()) {
+            && $block->getId() === Item::fromString($this->getConfig()->getNested('block.safe', 'stained_glass'))->getId()
+            && $block->getDamage() === $this->TeamManager->getTeamOf($entity)->getColor()['block']) {
             $event->setCancelled();
         }
     }
