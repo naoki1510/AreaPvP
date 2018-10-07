@@ -7,12 +7,17 @@ use naoki1510\areapvp\tasks\GameTask;
 use naoki1510\areapvp\tasks\SendMessageTask;
 use naoki1510\areapvp\team\TeamManager;
 use onebone\economyapi\EconomyAPI;
+use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\block\Block;
 use pocketmine\block\Stair;
 use pocketmine\event\Listener;
+use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
+use pocketmine\event\entity\EntityLevelChangeEvent;
+use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\event\player\PlayerDropItemEvent;
+use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\cheat\PlayerIllegalMoveEvent;
 use pocketmine\item\Fireworks;
 use pocketmine\item\Item;
@@ -39,6 +44,9 @@ class AreaPvP extends PluginBase implements Listener
         }
         return $key;
     }
+
+    /** @var Config */
+    private $inventories;
 
     /** @var TeamManager */
     private $TeamManager;
@@ -68,6 +76,7 @@ class AreaPvP extends PluginBase implements Listener
         $this->economy = $this->getServer()->getPluginManager()->getPlugin("EconomyAPI");
 
         $this->saveDefaultConfig();
+        $this->inventories = new Config($this->getDataFolder() . 'inventories.yml', Config::YAML);
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
         $this->getServer()->getCommandMap()->register('areapvp', new pvpCommand($this->TeamManager));
         $this->getServer()->getCommandMap()->register('areapvp', new setspCommand($this, $this->TeamManager));
@@ -78,10 +87,10 @@ class AreaPvP extends PluginBase implements Listener
             $this->getConfig()->getNested('game.minPlayers', 2),
             $this->TeamManager
         );
-        $this->getScheduler()->scheduleRepeatingTask($this->GameTask, $this->getConfig()->get('CheckInterval', 0.1) * 20);
+        $this->getScheduler()->scheduleRepeatingTask($this->GameTask, $this->getConfig()->get('CheckInterval', 0.15) * 20);
 
         $this->SendMessageTask = new SendMessageTask($this, $this->TeamManager);
-        $this->getScheduler()->scheduleRepeatingTask($this->SendMessageTask, 1 * 20);
+        $this->getScheduler()->scheduleRepeatingTask($this->SendMessageTask, 4);
 
         $this->start();
     }
@@ -201,12 +210,16 @@ class AreaPvP extends PluginBase implements Listener
         $world = $entity->getLevel();
         $block = ($world->getBlock($entity->subtract(0, 0.5))->getId() == 0) ? $world->getBlock($entity->subtract(0, 1.5)) : $world->getBlock($entity->subtract(0, 0.5));
 
-        if ($entity instanceof Player
-            && in_array($world->getName(), $this->getConfig()->get("world", ['pvp']))
-            && $this->TeamManager->exists($entity)
-            && $block->getId() === Item::fromString($this->getConfig()->getNested('block.safe', 'stained_glass'))->getId()
-            && $block->getDamage() === $this->TeamManager->getTeamOf($entity)->getColor()['block']) {
-            $event->setCancelled();
+        if($entity instanceof Player && $this->TeamManager->isJoin($entity)){
+            try{
+                if ($block->getId() === Item::fromString($this->getConfig()->getNested('block.safe', 'stained_glass'))->getId()
+                    && $block->getDamage() === $this->TeamManager->getTeamOf($entity)->getColor()['block']) {
+                    $event->setCancelled();
+                }
+            }catch(\InvalidArgumentException $e){
+                $this->getLogger()->warning('SafeBlock is invalid');
+                $this->getLogger()->warning($e->getMessage());
+            }
         }
     }
 
@@ -217,6 +230,90 @@ class AreaPvP extends PluginBase implements Listener
         if($block instanceof Stair){
             $e->setCancelled();
             //$player->sendMessage("cheat?");
+        }
+    }
+
+    public function onPlayerDeath(PlayerDeathEvent $event) : void
+    {
+        $victim = $event->getPlayer();
+        if ($victim->getLastDamageCause() instanceof EntityDamageByEntityEvent) {
+            if ($victim->getLastDamageCause()->getDamager() instanceof Player) {
+                if ($victim->getLevel() == $this->gameLevel) {
+                    $killer = $victim->getLastDamageCause()->getDamager();
+                    
+                    $this->TeamManager->getTeamOf($killer)->addPoint($this->getConfig()->getNested('game.killpoint'), 100);
+
+                    $event->setDrops([Item::fromString('cooked_beef')->setCount(3)]);
+                    $this->getLogger()->info("アイテムのドロップをキャンセル！");
+                }
+            }
+        }
+
+        if ($victim->getLevel() == $this->gameLevel) {
+            $this->TeamManager->getTeamOf($victim)->addPoint($this->getConfig()->getNested('game.deathpoint'), -10);
+
+            $event->setDrops([Item::fromString('cooked_beef')->setCount(3)]);
+            //$this->getLogger()->info("アイテムのドロップをキャンセル！");
+        }
+    }
+
+
+
+    public function onTeleportWorld(EntityLevelChangeEvent $e)
+    {
+		//$this->getLogger()->info('MovingWorld detected.');
+
+		//Playerなどイベント関連情報を取得
+        $player = $e->getEntity();
+        if (!$player instanceof Player) {
+            return;
+        }
+        $target = $e->getTarget();
+        $origin = $e->getOrigin();
+        if ($target === $this->gameLevel) {
+            $this->getLogger()->info('MovingWorld (1) detected.');
+            
+            $oitems = $player->getInventory()->getContents();
+
+            $items = [];
+            foreach ($this->inventories->getNested($player->getName() . '.' . $target->getName(), []) as $item) {
+                if ($item instanceof Item) {
+                    array_push($items, $item);
+                } elseif (is_string($item)) {
+                    if (($item = unserialize($item)) instanceof Item) {
+                        array_push($items, $item);
+                    }
+                }
+            }
+            $player->getInventory()->setContents($items);
+
+            $this->inventories->setNested($player->getName() . '.origin', $oitems);
+        } elseif ($origin === $this->gameLevel) {
+            $this->getLogger()->info('MovingWorld (2) detected.');
+
+            $player->setNameTagVisible(true);
+            $items = $player->getInventory()->getContents();
+            $this->inventories->setNested($player->getName() . '.' . $origin->getName(), $items);
+            $items = [];
+            foreach ($this->inventories->getNested($player->getName() . '.origin', []) as $item) {
+                if ($item instanceof Item) {
+                    array_push($items, $item);
+                } elseif (is_string($item)) {
+                    if (unserialize($item) instanceof Item) {
+                        array_push($items, unserialize($item));
+                    }
+                }
+            }
+            $player->getInventory()->setContents($items);
+        }
+        $this->inventories->save();
+    }
+
+    public function onJoin(PlayerJoinEvent $event){
+        $player = $event->getPlayer();
+        if($player->getLevel() === $this->gameLevel){
+            $player->teleport($this->getServer()->getDefaultLevel()->getSpawnLocation());
+            $player->setSpawn($this->getServer()->getDefaultLevel()->getSpawnLocation());
         }
     }
 }

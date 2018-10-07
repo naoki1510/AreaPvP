@@ -43,29 +43,29 @@ class GameTask extends Task{
             $teamsOnBlock = 0;
 
             foreach ($gameLevel->getPlayers() as $player) {
+                if (count($gameLevel->getPlayers()) < $this->minPlayer) {
+                    $player->sendTip(
+                        AreaPvP::translate(
+                            "game.lessplayers",
+                            ["count" => $this->minPlayer - count($gameLevel->getPlayers())]
+                        )
+                    );
+                    continue;
+                }
+
                 $blockUnderPlayer = ($gameLevel->getBlock($player->subtract(0, 0.5))->getId() == 0) ? $gameLevel->getBlock($player->subtract(0, 1.5)) : $gameLevel->getBlock($player->subtract(0, 0.5));
 
                 if ($blockUnderPlayer->getId() === $this->areaBlock->getId()) {
-                    if (count($gameLevel->getPlayers()) < $this->minPlayer) {
-                        $player->sendTip(
-                            AreaPvP::translate(
-                                "game.lessplayers",
-                                ["count" =>  $this->minPlayer - count($gameLevel->getPlayers())]
-                            )
-                        );
-                        return;
-                    } else {
-                        if ($this->teamManager->isJoin($player)) {
-                            $playerTeam = $this->teamManager->getTeamOf($player);
-                            if ($onlyteam !== $playerTeam) {
-                                $teamsOnBlock++;
-                            }
-                            if ($teamsOnBlock === 1) {
-                                $onlyTeam = $playerTeam;
-                            }
+                    
+                    if ($this->teamManager->isJoin($player)) {
+                        $playerTeam = $this->teamManager->getTeamOf($player);
+                        if ($onlyteam !== $playerTeam) {
+                            $teamsOnBlock++;
+                        }
+                        if ($teamsOnBlock === 1) {
+                            $onlyTeam = $playerTeam;
                         }
                     }
-                    break;
                 }
             }
             if ($teamsOnBlock === 1) {
