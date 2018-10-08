@@ -46,7 +46,7 @@ class SendMessageTask extends Task
             $player->setXpLevel($countdown);
             $player->setXpProgress($countdown / ($duration));
 
-            if ($countdown < 6 && $this->TeamManager->isJoin($player)) {
+            if ($countdown < 6 && $this->TeamManager->isJoin($player) && $currentTick % 20 < 4) {
                 $player->addTitle('§6' . $countdown, '', 2, 16, 2);
             }
         }

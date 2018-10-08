@@ -18,12 +18,14 @@ use pocketmine\event\entity\EntityLevelChangeEvent;
 use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\event\player\PlayerDropItemEvent;
 use pocketmine\event\player\PlayerJoinEvent;
+use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\event\player\cheat\PlayerIllegalMoveEvent;
 use pocketmine\item\Fireworks;
 use pocketmine\item\Item;
 use pocketmine\level\Level;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
+use pocketmine\entity\utils\Bossbar;
 
 
 
@@ -78,7 +80,7 @@ class AreaPvP extends PluginBase implements Listener
         $this->saveDefaultConfig();
         $this->inventories = new Config($this->getDataFolder() . 'inventories.yml', Config::YAML);
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
-        $this->getServer()->getCommandMap()->register('areapvp', new pvpCommand($this->TeamManager));
+        $this->getServer()->getCommandMap()->register('areapvp', new pvpCommand($this, $this->TeamManager));
         $this->getServer()->getCommandMap()->register('areapvp', new setspCommand($this, $this->TeamManager));
 
         $this->GameTask = new GameTask(
@@ -87,7 +89,7 @@ class AreaPvP extends PluginBase implements Listener
             $this->getConfig()->getNested('game.minPlayers', 2),
             $this->TeamManager
         );
-        $this->getScheduler()->scheduleRepeatingTask($this->GameTask, $this->getConfig()->get('CheckInterval', 0.15) * 20);
+        $this->getScheduler()->scheduleRepeatingTask($this->GameTask, $this->getConfig()->get('CheckInterval', 0.1) * 20);
 
         $this->SendMessageTask = new SendMessageTask($this, $this->TeamManager);
         $this->getScheduler()->scheduleRepeatingTask($this->SendMessageTask, 4);
@@ -96,7 +98,19 @@ class AreaPvP extends PluginBase implements Listener
     }
 
     public function start(){
-        $this->TeamManager->reJoin();
+        if($this->gameLevel instanceof Level){
+            foreach ($this->gameLevel->getPlayers() as $player) {
+                $this->TeamManager->joinTeam($player);
+            }
+        }else{
+            foreach ($this->getConfig()->get("worlds", ['pvp']) as $levelname) {
+                if(($level = $this->getServer()->getLevelByName($levelname)) instanceof Level){
+                    foreach ($level->getPlayers() as $player) {
+                        $this->TeamManager->joinTeam($player);
+                    }
+                }
+            }
+        }
 
         $this->GameTask->setCount(0);
         $this->running = true;
@@ -165,9 +179,7 @@ class AreaPvP extends PluginBase implements Listener
             }
         }
 
-        foreach ($this->TeamManager->getAllTeams() as $team) {
-            $team->removeAllPlayers(false);
-        }
+        $this->TeamManager->leaveAll();
     }
 
     public function getGameLevel() : Level {
@@ -223,6 +235,36 @@ class AreaPvP extends PluginBase implements Listener
         }
     }
 
+    public function onMove(PlayerMoveEvent $e)
+    {
+        $player = $e->getPlayer();
+        $level = $player->getLevel();
+        $block = ($level->getBlock($player->subtract(0, 0.5))->getId() == 0) ? $level->getBlock($player->subtract(0, 1.5)) : $level->getBlock($player->subtract(0, 0.5));
+        if ($this->TeamManager->isJoin($player)) {
+            try {
+                if ($block->getId() === Item::fromString($this->getConfig()->getNested('block.safe', 'stained_glass'))->getId()
+                    && $block->getDamage() === $this->TeamManager->getTeamOf($player)->getColor()['block']) {
+                    $player->setHealth($player->getMaxHealth());
+                    $player->setFood($player->getMaxFood());
+                }
+            } catch (\InvalidArgumentException $e) {
+                $this->getLogger()->warning('SafeBlock is invalid');
+                $this->getLogger()->warning($e->getMessage());
+            }
+        }
+            
+            
+            
+            /*$blockUnderPlayer->getId() == Block::STAINED_GLASS && in_array($level->getName(), $this->getConfig()->get('worlds', []))) {
+            $kit = $this->playerdata->get($player->getName());
+
+            $this->setItems($player, $kit);
+            $player->setHealth($player->getMaxHealth());
+            $player->setFood($player->getMaxFood());
+        }*/
+		//var_dump($this->getConfig()->get('worlds', ['pvp']));
+    }
+
     public function onIllegalMove(PlayerIllegalMoveEvent $e){
         $player = $e->getPlayer();
         $world = $player->getLevel();
@@ -242,8 +284,14 @@ class AreaPvP extends PluginBase implements Listener
                     $killer = $victim->getLastDamageCause()->getDamager();
                     
                     $this->TeamManager->getTeamOf($killer)->addPoint($this->getConfig()->getNested('game.killpoint'), 100);
+                    $drops = [];
+                    foreach ($event->getDrops() as $item) {
+                        if(rand(0, 99) < 5){
+                            $drops += [$item];
+                        }
+                    }
 
-                    $event->setDrops([Item::fromString('cooked_beef')->setCount(3)]);
+                    $event->setDrops([Item::fromString('cooked_beef')->setCount(3)] + $drops);
                     $this->getLogger()->info("アイテムのドロップをキャンセル！");
                 }
             }
@@ -271,7 +319,7 @@ class AreaPvP extends PluginBase implements Listener
         $target = $e->getTarget();
         $origin = $e->getOrigin();
         if ($target === $this->gameLevel) {
-            $this->getLogger()->info('MovingWorld (1) detected.');
+            //$this->getLogger()->info('MovingWorld (1) detected.');
             
             $oitems = $player->getInventory()->getContents();
 
@@ -289,7 +337,7 @@ class AreaPvP extends PluginBase implements Listener
 
             $this->inventories->setNested($player->getName() . '.origin', $oitems);
         } elseif ($origin === $this->gameLevel) {
-            $this->getLogger()->info('MovingWorld (2) detected.');
+            //$this->getLogger()->info('MovingWorld (2) detected.');
 
             $player->setNameTagVisible(true);
             $items = $player->getInventory()->getContents();

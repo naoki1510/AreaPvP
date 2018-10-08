@@ -52,7 +52,7 @@ class Team {
 		if ($this->exists($player)) {
 			unset($this->players[$player->getName()]);
 			$player->setNameTag($player->getName());
-			$player->sendMessage(AreaPvP::translate('team.leave', ['color' => $this->textColor, 'name' => $this->getName()]));
+			//$player->sendMessage(AreaPvP::translate('team.leave', ['color' => $this->textColor, 'name' => $this->getName()]));
 			$player->setAllowMovementCheats(false);
 			$player->setSpawn(Server::getInstance()->getDefaultLevel()->getSpawnLocation());
 			return true;

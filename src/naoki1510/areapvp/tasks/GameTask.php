@@ -37,8 +37,8 @@ class GameTask extends Task{
     }
 
     public function onRun(int $currentTick) {
+        $gameLevel = $this->areaPvP->getGameLevel();
         if($this->areaPvP->isRunning()){
-            $gameLevel = $this->areaPvP->getGameLevel();
             $onlyteam = null;
             $teamsOnBlock = 0;
 
@@ -79,7 +79,7 @@ class GameTask extends Task{
             }
         }
 
-        if (0 <= $currentTick % 20 && $currentTick % 20 < $this->areaPvP->getConfig()->get('CheckInterval', 0.1) * 20) {
+        if ($currentTick % 20 < $this->areaPvP->getConfig()->get('CheckInterval', 0.1) * 20 && count($gameLevel->getPlayers()) >= $this->minPlayer) {
             $this->count++;
         }
 

@@ -91,7 +91,7 @@ class TeamManager{
 	        }
 		}
 		
-	    $addTeam = $minTeams[rand(0, count($minTeams) - 1)];
+	    $addTeam = $minTeams[array_rand($minTeams)];
 	    $this->players[$player->getName()] = $player;
 	    
 		foreach ($this->players as $source) {
@@ -102,17 +102,16 @@ class TeamManager{
 		}
 
 		$player->teleport($addTeam->getSpawn());
-		$player->setAllowMovementCheats(true);
 		
 	    return $addTeam->add($player);
 	}
 
-	public function leaveTeam(Player $player) : void{
+	public function leaveTeam(Player $player, bool $teleport = true) : void{
 		if(!$this->isJoin($player)) return;
 
 		$this->getTeamOf($player)->remove($player);
 		unset($this->players[$player->getName()]);
-		$player->teleport(Server::getInstance()->getDefaultLevel()->getSpawnLocation());
+		if($teleport) $player->teleport(Server::getInstance()->getDefaultLevel()->getSpawnLocation());
 
 		return;
 	}
@@ -174,10 +173,11 @@ class TeamManager{
 		return $this->teams;
 	}
 
-	public function reJoin()
+	public function leaveAll()
 	{
-		foreach ($this->players as $player) {
-			$this->joinTeam($player);
+		foreach ($this->players as $playername => $player) {
+			$this->leaveTeam($player, false);
+			//unset($this->players[$playername]);
 		}
 		
 	}

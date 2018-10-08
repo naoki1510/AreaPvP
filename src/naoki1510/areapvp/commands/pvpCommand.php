@@ -14,8 +14,13 @@ use pocketmine\network\mcpe\protocol\types\CommandParameter;
 
 class pvpCommand extends Command
 {
+    /** @var AreaPvP */
+    public $AreaPvP;
+    
+    /** @var TeamManager */
+    public $TeamManager;
 
-    public function __construct(TeamManager $teamManager)
+    public function __construct(AreaPvP $areapvp, TeamManager $teamManager)
     {
         parent::__construct(
             'pvp',
@@ -28,6 +33,9 @@ class pvpCommand extends Command
             ]]
         );
         $this->setPermission("areapvp.command.pvp");
+
+        $this->TeamManager = $teamManager;
+        $this->AreaPvP = $areapvp;
     }
 
     public function execute(CommandSender $sender, string $commandLabel, array $args)
@@ -35,38 +43,34 @@ class pvpCommand extends Command
         if (!$this->testPermission($sender)) {
             return true;
         }
-        if ($sender instanceof Player) {
 
-            switch ($args[0] ?? '') {
-                /*
-                case 'setsp':
-                    if (TeamManager::getInstance()->existsTeam($args[1])) {
-                        TeamManager::getInstance()->setSpawn($sender->asPosition(), TeamManager::getInstance()->getTeam($args[1]));
+        switch ($args[0] ?? '') {
+            
+            case 'info':
+                $sender->sendMessage("GameCount : " . $this->AreaPvP->getGameTask()->getCount());
+                foreach ($this->TeamManager->getAllTeams() as $team) {
+                    $playernames = [];
+                    foreach ($team->getAllPlayers() as $playername => $player) {
+                        $playernames += [$playername];
                     }
-                    
-                    if (HotBlock::getInstance()->getGameLevel() === $sender->getLevel()) {
-                        if (TeamManager::getInstance()->existsTeam($args[1])) {
-                            TeamManager::getInstance()->getTeam($args[1])->setSpawn($sender->asPosition());
-                        }
-                    }
-
-                    $pos = \implode(',', [$sender->x, $sender->y, $sender->z, $sender->level->getName()]);
-                    TeamManager::getInstance()->getTeamConfig()->setNested('respawns.' . $sender->getLevel()->getName() . '.' . $args[1], $pos);
-                    TeamManager::getInstance()->getTeamConfig()->save();
-                    break: */
-
-                default:
-                    if (empty(TeamManager::getInstance()->getTeamOf($sender))) {
-                        TeamManager::getInstance()->joinTeam($sender);
+                    $sender->sendMessage('§' . $team->getColor('text') . $team->getName() . ' (' . $team->getPlayerCount() . ")\n" . implode("\n", $playernames));
+                }
+                break;
+            
+            default:
+                if ($sender instanceof Player) {
+                    if (empty($this->TeamManager->getTeamOf($sender))) {
+                        $this->TeamManager->joinTeam($sender);
                     } else {
-                        TeamManager::getInstance()->leaveTeam($sender);
+                        $this->TeamManager->leaveTeam($sender);
                     }
                     break;
-            }
-
-        } else {
-            $sender->sendMessage('You can use this in game');
+                } else {
+                    $sender->sendMessage('You can use this in game');
+                }
         }
+
+        
         return true;
     }
 }
