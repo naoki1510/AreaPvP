@@ -26,9 +26,12 @@ class EventListener implements Listener
     {
         $damaged = $event->getEntity();
         $attacker = $event->getDamager();
+        
         if ($damaged instanceof Player && $this->TeamManager->isJoin($damaged) && $this->isJoin($attacker)) {
+            $damaged->sendMessage($this->TeamManager->getTeamOf($damaged)->getName());
+            $attacker->sendMessage($this->TeamManager->getTeamOf($attacker)->getName());
             if ($this->TeamManager->getTeamOf($damaged) === $this->TeamManager->getTeamOf($attacker)) {
-                $event->setCancelled(true);
+                $event->setCancelled();
             }
         }
     }
