@@ -160,7 +160,7 @@ class AreaPvP extends PluginBase implements Listener
                 for ($i = 0; $i < 9; $i++) { 
                     $items[$i] = $this->getFireWorks();
                 }
-                $player->getInventory()->setContents($items);
+                //$player->getInventory()->setContents($items);
                 
             }
         }else{
@@ -282,8 +282,8 @@ class AreaPvP extends PluginBase implements Listener
             if ($victim->getLastDamageCause()->getDamager() instanceof Player) {
                 if ($victim->getLevel() == $this->gameLevel) {
                     $killer = $victim->getLastDamageCause()->getDamager();
+                    if($this->TeamManager->isJoin($killer)) $this->TeamManager->getTeamOf($killer)->addPoint($this->getConfig()->getNested('game.killpoint'), 100);
                     
-                    $this->TeamManager->getTeamOf($killer)->addPoint($this->getConfig()->getNested('game.killpoint'), 100);
                     $drops = [];
                     foreach ($event->getDrops() as $item) {
                         if(rand(0, 99) < 5){
