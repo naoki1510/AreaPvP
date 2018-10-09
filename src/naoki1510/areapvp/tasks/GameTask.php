@@ -39,8 +39,8 @@ class GameTask extends Task{
     public function onRun(int $currentTick) {
         $gameLevel = $this->areaPvP->getGameLevel();
         if($this->areaPvP->isRunning()){
-            $onlyteam = null;
-            $teamsOnBlock = 0;
+            $teamsOnBlock = [];
+            $playerCount = 0;
 
             foreach ($gameLevel->getPlayers() as $player) {
                 if (count($gameLevel->getPlayers()) < $this->minPlayer) {
@@ -59,18 +59,14 @@ class GameTask extends Task{
                     
                     if ($this->teamManager->isJoin($player)) {
                         $playerTeam = $this->teamManager->getTeamOf($player);
-                        if ($onlyteam !== $playerTeam) {
-                            $teamsOnBlock++;
-                        }
-                        if ($teamsOnBlock === 1) {
-                            $onlyTeam = $playerTeam;
-                        }
+                        $teamsOnBlock[$playerTeam->getName()] = $playerTeam;
+                        $playerCount++;
                     }
                 }
             }
-            if ($teamsOnBlock === 1) {
+            if (count($teamsOnBlock) === 1) {
                 // Configで設定できた方がいいかも？
-                $onlyTeam->addPoint(1);
+                array_shift($teamsOnBlock)->addPoint(1 * $playerCount);
 
             }
 

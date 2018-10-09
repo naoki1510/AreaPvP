@@ -2,6 +2,7 @@
 
 namespace naoki1510\areapvp\team;
 
+use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\event\Listener;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
@@ -27,9 +28,9 @@ class EventListener implements Listener
         $damaged = $event->getEntity();
         $attacker = $event->getDamager();
         
-        if ($damaged instanceof Player && $this->TeamManager->isJoin($damaged) && $this->isJoin($attacker)) {
-            $damaged->sendMessage($this->TeamManager->getTeamOf($damaged)->getName());
-            $attacker->sendMessage($this->TeamManager->getTeamOf($attacker)->getName());
+        if ($damaged instanceof Player && $attacker instanceof Player && $this->TeamManager->isJoin($damaged) && $this->TeamManager->isJoin($attacker)) {
+            //$damaged->sendMessage($this->TeamManager->getTeamOf($damaged)->getName());
+            //$attacker->sendMessage($this->TeamManager->getTeamOf($attacker)->getName());
             if ($this->TeamManager->getTeamOf($damaged) === $this->TeamManager->getTeamOf($attacker)) {
                 $event->setCancelled();
             }

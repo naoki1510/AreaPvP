@@ -2,13 +2,15 @@
 
 namespace naoki1510\areapvp\tasks;
 
+use naoki1510\areapvp\AreaPvP;
+use naoki1510\areapvp\team\TeamManager;
+use pocketmine\Player;
 use pocketmine\block\Block;
 use pocketmine\entity\Effect;
 use pocketmine\entity\EffectInstance;
 use pocketmine\item\Item;
 use pocketmine\scheduler\Task;
-use naoki1510\areapvp\AreaPvP;
-use naoki1510\areapvp\team\TeamManager;
+use naoki1510\areapvp\team\Team;
 
 
 class SendMessageTask extends Task
@@ -29,25 +31,32 @@ class SendMessageTask extends Task
     {
         $gameLevel = $this->AreaPvP->getGameLevel();
 
-        // Make a message with points
-        $message = '';
-        foreach ($this->TeamManager->getAllTeams() as $team) {
-            $message .= '§l§' . $team->getColor()['text'] . $team->getName() . ' Team§f:§' . $team->getColor()['text'] . $team->getPoint() . '§f,';
-        }
+        foreach ($this->TeamManager->getAllTeams() as $teama) {
+            
+            // Make a message with points
+            $message = '';
+            foreach ($this->TeamManager->getAllTeams() as $team) {
+                if($team === $teama){
+                    $message .= '§l§' . $team->getColor()['text'] . $team->getName() . ' Team§f:§' . $team->getColor()['text'] . $team->getPoint() . '§r§f,';
+                }else{
+                    $message .= '§' . $team->getColor()['text'] . $team->getName() . ' Team§l§f:§' . $team->getColor()['text'] . $team->getPoint() . '§r§f,';
+                }
+            }
 
-        $message = trim($message, ",");
-        $duration = $this->AreaPvP->getGameDuration();
-        $count = $this->AreaPvP->getGameTask()->getCount();
-        $countdown = $duration - $count;
-        
-        foreach ($gameLevel->getPlayers() as $player) {
-            $player->sendPopup($message);
-            if($countdown < 0) continue;
-            $player->setXpLevel($countdown);
-            $player->setXpProgress($countdown / ($duration));
+            $message = trim($message, ",");
+            $duration = $this->AreaPvP->getGameDuration();
+            $count = $this->AreaPvP->getGameTask()->getCount();
+            $countdown = $duration - $count;
 
-            if ($countdown < 6 && $this->TeamManager->isJoin($player) && $currentTick % 20 < 4) {
-                $player->addTitle('§6' . $countdown, '', 2, 16, 2);
+            foreach ($teama->getAllPlayers() as $player) {
+                $player->sendPopup($message);
+                if ($countdown < 0) continue;
+                $player->setXpLevel($countdown);
+                $player->setXpProgress($countdown / ($duration));
+
+                if ($countdown < 6 && $this->TeamManager->isJoin($player) && $currentTick % 20 < 4) {
+                    $player->addTitle('§6' . $countdown, '', 2, 16, 2);
+                }
             }
         }
     }

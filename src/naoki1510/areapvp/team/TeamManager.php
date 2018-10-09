@@ -90,8 +90,8 @@ class TeamManager{
 	        	array_push($minTeams, $team);
 	        }
 		}
-		
-	    $addTeam = $minTeams[array_rand($minTeams)];
+		//var_dump($minTeams);
+	    $addTeam = $minTeams[rand(0, count($minTeams) - 1)];
 	    $this->players[$player->getName()] = $player;
 	    
 		foreach ($this->players as $source) {
