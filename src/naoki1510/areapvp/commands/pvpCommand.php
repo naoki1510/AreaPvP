@@ -49,11 +49,12 @@ class pvpCommand extends Command
             case 'info':
                 $sender->sendMessage("GameCount : " . $this->AreaPvP->getGameTask()->getCount());
                 foreach ($this->TeamManager->getAllTeams() as $team) {
-                    $playernames = [];
+                    $sender->sendMessage('§' . $team->getColor('text') . $team->getName() . ' (' . $team->getPlayerCount() . ")".);
                     foreach ($team->getAllPlayers() as $playername => $player) {
-                        $playernames += [$playername];
+                        // $playernames += [$playername];
+                        $sender->sendMessage('§' . $team->getColor('text') . $team->getName() . $playername;
                     }
-                    $sender->sendMessage('§' . $team->getColor('text') . $team->getName() . ' (' . $team->getPlayerCount() . ")\n" . implode("\n", $playernames));
+                    
                 }
                 break;
             
