@@ -49,10 +49,10 @@ class pvpCommand extends Command
             case 'info':
                 $sender->sendMessage("GameCount : " . $this->AreaPvP->getGameTask()->getCount());
                 foreach ($this->TeamManager->getAllTeams() as $team) {
-                    $sender->sendMessage('§' . $team->getColor('text') . $team->getName() . ' (' . $team->getPlayerCount() . ")".);
+                    $sender->sendMessage('§' . $team->getColor('text') . $team->getName() . ' (' . $team->getPlayerCount() . ")");
                     foreach ($team->getAllPlayers() as $playername => $player) {
                         // $playernames += [$playername];
-                        $sender->sendMessage('§' . $team->getColor('text') . $team->getName() . $playername;
+                        $sender->sendMessage('§' . $team->getColor('text') . $team->getName() . $playername);
                     }
                     
                 }
@@ -60,7 +60,7 @@ class pvpCommand extends Command
             
             default:
                 if ($sender instanceof Player) {
-                    if (empty($this->TeamManager->getTeamOf($sender))) {
+                    if ($sender->getLevel() !== $this->AreaPvP->getGameLevel()) {
                         $this->TeamManager->joinTeam($sender);
                     } else {
                         $this->TeamManager->leaveTeam($sender);

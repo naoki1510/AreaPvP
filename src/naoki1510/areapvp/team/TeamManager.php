@@ -19,7 +19,7 @@ use pocketmine\network\mcpe\protocol\SetEntityDataPacket;
 use pocketmine\scheduler\TaskScheduler;
 use pocketmine\utils\Config;
 
-
+/** @todo remove dependence on areapvp to make a plugin 'TeamAPI' */
 class TeamManager{
 
 	/** @var TeamManager */

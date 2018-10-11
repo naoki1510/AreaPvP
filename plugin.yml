@@ -5,7 +5,7 @@ api:
 - 3.0.0
 - 4.0.0
 
-depend: ["EconomyAPI"]
+depend: ["EconomyAPI", 'KitPlugin']
 
 author: naoki1510
 description: A API of team

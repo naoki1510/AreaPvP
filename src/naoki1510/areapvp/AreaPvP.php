@@ -26,6 +26,7 @@ use pocketmine\level\Level;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
 use pocketmine\entity\utils\Bossbar;
+use naoki1510\areapvp\events\GameStartEvent;
 
 
 
@@ -74,15 +75,19 @@ class AreaPvP extends PluginBase implements Listener
             $this->getFile() . "resources/languages/" . $this->getConfig()->get("language", "en") . ".yml"
         );
 
+        // register API
         $this->TeamManager = new TeamManager($this);
         $this->economy = $this->getServer()->getPluginManager()->getPlugin("EconomyAPI");
 
+        // About config
         $this->saveDefaultConfig();
-        $this->inventories = new Config($this->getDataFolder() . 'inventories.yml', Config::YAML);
+        // register Listener
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
+        // register commands
         $this->getServer()->getCommandMap()->register('areapvp', new pvpCommand($this, $this->TeamManager));
         $this->getServer()->getCommandMap()->register('areapvp', new setspCommand($this, $this->TeamManager));
 
+        // register tasks
         $this->GameTask = new GameTask(
             $this,
             Item::fromString($this->getConfig()->getNested('block.area', Block::WOOL))->getBlock(),
@@ -94,10 +99,13 @@ class AreaPvP extends PluginBase implements Listener
         $this->SendMessageTask = new SendMessageTask($this, $this->TeamManager);
         $this->getScheduler()->scheduleRepeatingTask($this->SendMessageTask, 4);
 
+        // game start!
         $this->start();
     }
 
     public function start(){
+        $ev = $this->getServer()->getPluginManager()->callEvent(new GameStartEvent);
+        // rejoin players to team
         if($this->gameLevel instanceof Level){
             foreach ($this->gameLevel->getPlayers() as $player) {
                 $this->TeamManager->joinTeam($player);
@@ -116,7 +124,7 @@ class AreaPvP extends PluginBase implements Listener
         $this->running = true;
 
         $levelnames = $this->getConfig()->get("worlds", ['pvp']);
-        $level = Server::getInstance()->getLevelByName($levelnames[array_rand($levelnames)]);
+        $level = Server::getInstance()->getLevelByName($levelnames[rand(0, count($levelnames) - 1)]);
         $this->gameLevel = $level;
 
         $this->TeamManager->reloadRespawn();
@@ -306,7 +314,7 @@ class AreaPvP extends PluginBase implements Listener
     }
 
 
-
+    /*
     public function onTeleportWorld(EntityLevelChangeEvent $e)
     {
 		//$this->getLogger()->info('MovingWorld detected.');
@@ -355,7 +363,7 @@ class AreaPvP extends PluginBase implements Listener
             $player->getInventory()->setContents($items);
         }
         $this->inventories->save();
-    }
+    }*/
 
     public function onJoin(PlayerJoinEvent $event){
         $player = $event->getPlayer();
