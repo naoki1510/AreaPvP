@@ -16,8 +16,10 @@ class Team {
 	public $name;
 	public $textColor;
 	
-	/** @var int */
+	/** @var float */
 	public $points;
+
+	/** @var Int */
 	public $blockColor;
 	
 	/** @var Player[] */
@@ -64,12 +66,12 @@ class Team {
 		return isset($this->players[$player->getName()]);
 	}
 
-	public function addPoint(Int $point = 1){
+	public function addPoint(float $point = 1){
 		$this->points += $point;
 	}
 
 	public function getPoint() : Int {
-		return $this->points;
+		return ceil($this->points);
 	}
 
 	public function setPoint(int $point){

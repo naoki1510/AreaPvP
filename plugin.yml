@@ -26,3 +26,6 @@ permissions:
           areapvp.command.setsp:
             default: op
             description:
+          areapvp.command.setarea:
+            default: op
+            description:

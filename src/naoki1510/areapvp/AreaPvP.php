@@ -2,7 +2,9 @@
 namespace naoki1510\areapvp;
 
 use naoki1510\areapvp\commands\pvpCommand;
+use naoki1510\areapvp\commands\setareaCommand;
 use naoki1510\areapvp\commands\setspCommand;
+use naoki1510\areapvp\events\GameStartEvent;
 use naoki1510\areapvp\tasks\GameTask;
 use naoki1510\areapvp\tasks\SendMessageTask;
 use naoki1510\areapvp\team\TeamManager;
@@ -11,6 +13,7 @@ use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\block\Block;
 use pocketmine\block\Stair;
+use pocketmine\entity\utils\Bossbar;
 use pocketmine\event\Listener;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
@@ -25,8 +28,6 @@ use pocketmine\item\Item;
 use pocketmine\level\Level;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
-use pocketmine\entity\utils\Bossbar;
-use naoki1510\areapvp\events\GameStartEvent;
 
 
 
@@ -86,6 +87,7 @@ class AreaPvP extends PluginBase implements Listener
         // register commands
         $this->getServer()->getCommandMap()->register('areapvp', new pvpCommand($this, $this->TeamManager));
         $this->getServer()->getCommandMap()->register('areapvp', new setspCommand($this, $this->TeamManager));
+        $this->getServer()->getCommandMap()->register('areapvp', new setareaCommand($this, $this->TeamManager));
 
         // register tasks
         $this->GameTask = new GameTask(
@@ -182,7 +184,7 @@ class AreaPvP extends PluginBase implements Listener
                     $items[$i] = $this->getFireWorks();
                 }
                 
-                $player->getInventory()->setContents($items);
+                //$player->getInventory()->setContents($items);
 
             }
         }
@@ -300,13 +302,14 @@ class AreaPvP extends PluginBase implements Listener
                     }
 
                     $event->setDrops([Item::fromString('cooked_beef')->setCount(3)] + $drops);
-                    $this->getLogger()->info("アイテムのドロップをキャンセル！");
+                    //$this->getLogger()->info("アイテムのドロップをキャンセル！");
+                    EconomyAPI::getInstance()->addMoney($killer, $this->getConfig()->getNested('game.killpoint'), 100);
                 }
             }
         }
 
         if ($victim->getLevel() == $this->gameLevel) {
-            $this->TeamManager->getTeamOf($victim)->addPoint($this->getConfig()->getNested('game.deathpoint'), -10);
+            if ($this->TeamManager->getTeamOf($victim) !== null) $this->TeamManager->getTeamOf($victim)->addPoint($this->getConfig()->getNested('game.deathpoint'), -10);
 
             $event->setDrops([Item::fromString('cooked_beef')->setCount(3)]);
             //$this->getLogger()->info("アイテムのドロップをキャンセル！");

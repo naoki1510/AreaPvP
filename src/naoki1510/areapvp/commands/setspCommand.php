@@ -35,7 +35,7 @@ class setspCommand extends Command
                 new CommandParameter("Teams", CommandParameter::ARG_TYPE_STRING, true, new CommandEnum("Teams", $teams)),
             ]]
         );
-        $this->setPermission("areapvp.command.pvp");
+        $this->setPermission("areapvp.command.setsp");
     }
 
     public function execute(CommandSender $sender, string $commandLabel, array $args)
