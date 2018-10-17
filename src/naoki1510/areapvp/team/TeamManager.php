@@ -80,6 +80,10 @@ class TeamManager{
 	 * @return bool
 	 */
 	public function joinTeam(Player $player) : bool{
+		if($this->isJoin($player)){
+			$player->teleport($this->getTeamOf($player)->getSpawn());
+			return false;
+		}
 	    $minTeams = [];
 	    $minPlayers = Server::getInstance()->getMaxPlayers();
 	    foreach ($this->teams as $team) {
@@ -104,6 +108,7 @@ class TeamManager{
 	}
 
 	public function leaveTeam(Player $player, bool $teleport = true) : void{
+		$player->removeBossbar(0);
 		if(!$this->isJoin($player)) return;
 
 		$this->getTeamOf($player)->remove($player);
@@ -181,8 +186,13 @@ class TeamManager{
 	public function leaveAll()
 	{
 		foreach ($this->players as $playername => $player) {
-			$this->leaveTeam($player, false);
+			$this->leaveTeam($player, true);
 		}
+	}
+
+	public function setArea(Position $pos, Int $num){
+		$this->AreaPvP->getConfig()->setNested($pos->getLevel()->getName() . '.pos' . $num, implode(',', [$pos->x, $pos->y, $pos->z]));
+		$this->AreaPvP->saveConfig();
 	}
 
     // This function is based on Entity::sendData()

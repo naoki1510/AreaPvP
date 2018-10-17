@@ -28,6 +28,9 @@ class GameTask extends Task{
     /** @var Position */
     private $areapos;
 
+    /** @var Team */
+    public $pointTeam;
+
     /** @var Int */
     public $minPlayer;
     public $count;
@@ -85,12 +88,14 @@ class GameTask extends Task{
                 foreach ($playersOnBlock as $player) {
                     EconomyAPI::getInstance()->addMoney($player, ceil($point));
                 }
-                $this->changeBlock($gameLevel, $this->areaBlock, $team->getColor('block'));
+                $this->changeBlock($gameLevel, $team->getColor('block'));
+                $this->pointTeam = $team;
             }elseif($this->areaBlock->isValid()){
-                $this->changeBlock($gameLevel, $this->areaBlock, 0);
+                $this->changeBlock($gameLevel, 0);
+                $this->pointTeam = null;
             }
 
-            if($this->count - 1 >= $this->areaPvP->getGameDuration()){
+            if($this->count >= $this->areaPvP->getGameDuration()){
                 $this->areaPvP->finish();
             }
         }
@@ -99,7 +104,7 @@ class GameTask extends Task{
             $this->count++;
         }
 
-        if ($this->count >= $this->areaPvP->getGameDuration() + $this->areaPvP->getInterval()) {
+        if ($this->count > $this->areaPvP->getGameDuration() + $this->areaPvP->getInterval()) {
             $this->areaPvP->start();
         }
     }
@@ -113,28 +118,29 @@ class GameTask extends Task{
         $this->count = $count;
     }
 
-    private function changeBlock(Level $level, Block $block, int $meta, bool $back = true, bool $vertical = false)
+    private function changeBlock(Level $level, int $meta)
     {
-        //var_dump($block, $back);
-        if ($back && ($nblock = $level->getBlock($block->subtract(-1)))->getId() === $block->getId()) {
-            $this->changeBlock($level, $nblock, $meta, true);
-            return;
-        } else if ($back && ($nblock = $level->getBlock($block->subtract(0, 0, -1)))->getId() === $block->getId()) {
-            $this->changeBlock($level, $nblock, $meta, true);
-            return;
-        } else {
-            $level->setBlock($block, Block::get($block->getId(), $meta));
-            if (($nblock = $level->getBlock($block->subtract(1)))->getId() === $block->getId()) {
-                $this->changeBlock($level, $nblock, $meta, false);
-            }else if(!$vertical){
-                return;
-            }
-            if (($nblock = $level->getBlock($block->subtract(0, 0, 1)))->getId() === $block->getId()) {
-                $this->changeBlock($level, $nblock, $meta, false, true);
-            }else{
-                return;
+        $pos1 = $this->areaPvP->getConfig()->getNested($level->getName() . '.pos1');
+        $pos2 = $this->areaPvP->getConfig()->getNested($level->getName() . '.pos2');
+        if(!empty($pos1) && !empty($pos2)){
+            $p1data = \explode(',', $pos1);
+            $p2data = \explode(',', $pos2);
+            for ($x = $p1data[0]; ($p1data[0] < $p2data[0]) ? $x <= $p2data[0] : $x >= $p2data[0]; ($p1data[0] < $p2data[0]) ? $x++ : $x--) {
+                for ($z = $p1data[2]; ($p1data[2] < $p2data[2]) ? $z <= $p2data[2] : $z >= $p2data[2]; ($p1data[2] < $p2data[2]) ? $z++ : $z--) { 
+                    $block = $level->getBlockAt($x, $p1data[1], $z);
+                    if($block->getId() === Block::WOOL){
+                        $level->setBlock($block->asPosition(), Block::get(Block::WOOL, $meta));
+                    }
+                }
             }
         }
+    }
 
+    /**
+     * @return Team|null
+     */
+    public function getLastPointTeam()
+    {
+        return $this->pointTeam ?? null;
     }
 }

@@ -15,11 +15,13 @@ use pocketmine\block\Block;
 use pocketmine\block\Stair;
 use pocketmine\entity\utils\Bossbar;
 use pocketmine\event\Listener;
+use pocketmine\event\block\SignChangeEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\entity\EntityLevelChangeEvent;
 use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\event\player\PlayerDropItemEvent;
+use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\event\player\cheat\PlayerIllegalMoveEvent;
@@ -27,12 +29,15 @@ use pocketmine\item\Fireworks;
 use pocketmine\item\Item;
 use pocketmine\level\Level;
 use pocketmine\plugin\PluginBase;
+use pocketmine\tile\Sign;
 use pocketmine\utils\Config;
 
 
 
 class AreaPvP extends PluginBase implements Listener
 {
+    public const BOSSBAR_ID = 0;
+
     /** @var Config */
     private static $messages;
 
@@ -99,7 +104,7 @@ class AreaPvP extends PluginBase implements Listener
         $this->getScheduler()->scheduleRepeatingTask($this->GameTask, $this->getConfig()->get('CheckInterval', 0.1) * 20);
 
         $this->SendMessageTask = new SendMessageTask($this, $this->TeamManager);
-        $this->getScheduler()->scheduleRepeatingTask($this->SendMessageTask, 4);
+        $this->getScheduler()->scheduleRepeatingTask($this->SendMessageTask, 10);
 
         // game start!
         $this->start();
@@ -110,7 +115,7 @@ class AreaPvP extends PluginBase implements Listener
         // rejoin players to team
         if($this->gameLevel instanceof Level){
             foreach ($this->gameLevel->getPlayers() as $player) {
-                $this->TeamManager->joinTeam($player);
+                //$this->TeamManager->joinTeam($player);
             }
         }else{
             foreach ($this->getConfig()->get("worlds", ['pvp']) as $levelname) {
@@ -190,6 +195,14 @@ class AreaPvP extends PluginBase implements Listener
         }
 
         $this->TeamManager->leaveAll();
+    }
+
+    public function onDisable(){
+        foreach ($this->TeamManager->getAllPlayers() as $player) {
+            $this->TeamManager->leaveTeam($player);
+            //$player->removeBossbar(0);
+            //$player->getBossbar(0)->
+        }
     }
 
     public function getGameLevel() : Level {
@@ -316,63 +329,66 @@ class AreaPvP extends PluginBase implements Listener
         }
     }
 
-
-    /*
-    public function onTeleportWorld(EntityLevelChangeEvent $e)
+    /** @param SignChangeEvent|Sign $sign */
+    public function reloadSign($sign)
     {
-		//$this->getLogger()->info('MovingWorld detected.');
+        try {
+            if (preg_match('/^(§[0-9a-fklmnor])*\[?(§[0-9a-fklmnor])*pvp(§[0-9a-fklmnor])*\]?$/iu', trim($sign->getLine(0))) == 1) {
 
-		//Playerなどイベント関連情報を取得
-        $player = $e->getEntity();
-        if (!$player instanceof Player) {
-            return;
-        }
-        $target = $e->getTarget();
-        $origin = $e->getOrigin();
-        if ($target === $this->gameLevel) {
-            //$this->getLogger()->info('MovingWorld (1) detected.');
-            
-            $oitems = $player->getInventory()->getContents();
-
-            $items = [];
-            foreach ($this->inventories->getNested($player->getName() . '.' . $target->getName(), []) as $item) {
-                if ($item instanceof Item) {
-                    array_push($items, $item);
-                } elseif (is_string($item)) {
-                    if (($item = unserialize($item)) instanceof Item) {
-                        array_push($items, $item);
-                    }
-                }
+                $sign->setLine(0, '§a[§lPvP§r§a]');
+                $sign->setLine(1, '§l§eタップでPvPに参加!!');
+                $sign->setLine(2, '§c上のルールを読んでから');
+                $sign->setLine(3, '§c参加してください');
+                
             }
-            $player->getInventory()->setContents($items);
-
-            $this->inventories->setNested($player->getName() . '.origin', $oitems);
-        } elseif ($origin === $this->gameLevel) {
-            //$this->getLogger()->info('MovingWorld (2) detected.');
-
-            $player->setNameTagVisible(true);
-            $items = $player->getInventory()->getContents();
-            $this->inventories->setNested($player->getName() . '.' . $origin->getName(), $items);
-            $items = [];
-            foreach ($this->inventories->getNested($player->getName() . '.origin', []) as $item) {
-                if ($item instanceof Item) {
-                    array_push($items, $item);
-                } elseif (is_string($item)) {
-                    if (unserialize($item) instanceof Item) {
-                        array_push($items, unserialize($item));
-                    }
-                }
-            }
-            $player->getInventory()->setContents($items);
+        } catch (\BadMethodCallException $e) {
+            $this->getLogger()->warning($e->getMessage());
         }
-        $this->inventories->save();
-    }*/
+    }
+
+    public function onSignChange(SignChangeEvent $e)
+    {
+        $this->reloadSign($e);
+    }
+
+    public function onPlayerTap(PlayerInteractEvent $e)
+    {
+        $player = $e->getPlayer();
+        if ($player->isSneaking()) return;
+
+        $block = $e->getBlock();
+        switch ($block->getId()) {
+            // 看板
+            case Block::WALL_SIGN:
+            case Block::SIGN_POST:
+                $sign = $block->getLevel()->getTile($block->asPosition());
+
+                if ($sign instanceof Sign && preg_match('/^(§[0-9a-fklmnor])*\[(§[0-9a-fklmnor])*pvp(§[0-9a-fklmnor])*\]$/iu', trim($sign->getLine(0))) == 1) {
+                    $this->TeamManager->joinTeam($player);
+                }
+                break;
+
+            default:
+                return;
+                break;
+        }
+        $e->setCancelled();
+    }
 
     public function onJoin(PlayerJoinEvent $event){
         $player = $event->getPlayer();
-        if($player->getLevel() === $this->gameLevel){
+        if($player->getLevel() === $this->gameLevel && !$this->TeamManager->isJoin($player)){
             $player->teleport($this->getServer()->getDefaultLevel()->getSpawnLocation());
             $player->setSpawn($this->getServer()->getDefaultLevel()->getSpawnLocation());
+        }
+    }
+
+    public function onMoveWorld(EntityLevelChangeEvent $e){
+        $player = $e->getEntity();
+        if($player instanceof Player){
+            if(!$this->TeamManager->isJoin($player)){
+                $player->removeBossbar(0);
+            }
         }
     }
 }

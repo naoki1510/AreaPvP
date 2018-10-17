@@ -31,6 +31,7 @@ class setareaCommand extends Command
         );
         $this->setPermission("areapvp.command.setarea");
         $this->AreaPvP = $AreaPvP;
+        $this->TeamManager = $teamManager;
     }
 
     public function execute(CommandSender $sender, string $commandLabel, array $args)
@@ -39,36 +40,21 @@ class setareaCommand extends Command
             return true;
         }
         if ($sender instanceof Player) {
-            $blockUnderPlayer = $sender->getLevel()->getBlock($sender->subtract(0, 0.5))->getId() ? $sender->getLevel()->getBlock($sender->subtract(0, 0.5)) : $sender->getLevel()->getBlock($sender->subtract(0, 1.5));
-            $this->changeBlock($sender->getLevel(), $blockUnderPlayer, $args[0] ?? 0, true);
+            switch($args[0] ?? ''){
+                case 'pos1':
+                    $pos = $sender->getLevel()->getBlock($sender->subtract(0, 0.5));
+                    $this->TeamManager->setArea($pos->asPosition(), 1);
+                    break;
+
+                case 'pos2':
+                    $pos = $sender->getLevel()->getBlock($sender->subtract(0, 0.5));
+                    $this->TeamManager->setArea($pos->asPosition(), 2);
+                    break;
+            }
 
         } else {
             $sender->sendMessage('You can use this in game');
         }
         return true;
-    }
-
-    private function changeBlock(Level $level, Block $block, int $meta, bool $back = true, bool $vertical = false)
-    {
-        //var_dump($block->asVector3(), $back);
-        $level->setBlock($block, Block::get($block->getId(), $meta));
-        if ($back && ($nblock = $level->getBlock($block->subtract(-1)))->getId() === $block->getId()) {
-            $this->changeBlock($level, $nblock, $meta, true);
-            return;
-        } else if ($back && ($nblock = $level->getBlock($block->subtract(0, 0, -1)))->getId() === $block->getId()) {
-            $this->changeBlock($level, $nblock, $meta, true);
-            return;
-        } else {
-            if (($nblock = $level->getBlock($block->subtract(1)))->getId() === $block->getId()) {
-                $this->changeBlock($level, $nblock, $meta, false);
-            } else if (!$vertical) {
-                return;
-            }
-            if (($nblock = $level->getBlock($block->subtract(0, 0, 1)))->getId() === $block->getId()) {
-                $this->changeBlock($level, $nblock, $meta, false, true);
-            } else {
-                return;
-            }
-        }
     }
 }
