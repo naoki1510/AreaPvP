@@ -6,13 +6,15 @@ use naoki1510\areapvp\AreaPvP;
 use naoki1510\areapvp\team\TeamManager;
 use pocketmine\Player;
 use pocketmine\Server;
+use pocketmine\block\Block;
 use pocketmine\command\Command;
 use pocketmine\command\CommandEnumValues;
 use pocketmine\command\CommandSender;
+use pocketmine\level\Level;
 use pocketmine\network\mcpe\protocol\types\CommandEnum;
 use pocketmine\network\mcpe\protocol\types\CommandParameter;
 
-class setspCommand extends Command
+class setareaCommand extends Command
 {
     /** @var AreaPvP */
     private $AreaPvP;
@@ -22,20 +24,14 @@ class setspCommand extends Command
 
     public function __construct(AreaPvP $AreaPvP, TeamManager $teamManager)
     {
-        $teams = [];
-        foreach ($teamManager->getAllTeams() as $teamname => $team) {
-            array_push($teams, $team->getName());
-        }
         parent::__construct(
-            'setsp',
-            AreaPvP::translate('commands.setsp.description'),
-            AreaPvP::translate('commands.setsp.usage'),
-            [],
-            [[
-                new CommandParameter("Teams", CommandParameter::ARG_TYPE_STRING, true, new CommandEnum("Teams", $teams)),
-            ]]
+            'setarea',
+            AreaPvP::translate('commands.setarea.description'),
+            AreaPvP::translate('commands.setarea.usage')
         );
-        $this->setPermission("areapvp.command.setsp");
+        $this->setPermission("areapvp.command.setarea");
+        $this->AreaPvP = $AreaPvP;
+        $this->TeamManager = $teamManager;
     }
 
     public function execute(CommandSender $sender, string $commandLabel, array $args)
@@ -44,9 +40,16 @@ class setspCommand extends Command
             return true;
         }
         if ($sender instanceof Player) {
-            if (TeamManager::getInstance()->existsTeam($args[0])) {
-                TeamManager::getInstance()->setSpawn($sender->asPosition(), TeamManager::getInstance()->getTeam($args[0]));
-                $sender->sendMessage(TeamManager::getInstance()->getTeam($args[0])->getName() . "'s respawn point was set to " . implode(', ', [$sender->x, $sender->y, $sender->z]));
+            switch($args[0] ?? ''){
+                case 'pos1':
+                    $pos = $sender->getLevel()->getBlock($sender->subtract(0, 0.5));
+                    $this->TeamManager->setArea($pos->asPosition(), 1);
+                    break;
+
+                case 'pos2':
+                    $pos = $sender->getLevel()->getBlock($sender->subtract(0, 0.5));
+                    $this->TeamManager->setArea($pos->asPosition(), 2);
+                    break;
             }
 
         } else {

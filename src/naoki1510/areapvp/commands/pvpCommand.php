@@ -63,7 +63,7 @@ class pvpCommand extends Command
                     if ($sender->getLevel() !== $this->AreaPvP->getGameLevel()) {
                         $this->TeamManager->joinTeam($sender);
                     } else {
-                        $this->TeamManager->leaveTeam($sender);
+                        //$this->TeamManager->leaveTeam($sender);
                     }
                     break;
                 } else {

@@ -80,6 +80,10 @@ class TeamManager{
 	 * @return bool
 	 */
 	public function joinTeam(Player $player) : bool{
+		if($this->isJoin($player)){
+			$player->teleport($this->getTeamOf($player)->getSpawn());
+			return false;
+		}
 	    $minTeams = [];
 	    $minPlayers = Server::getInstance()->getMaxPlayers();
 	    foreach ($this->teams as $team) {
@@ -90,23 +94,21 @@ class TeamManager{
 	        	array_push($minTeams, $team);
 	        }
 		}
-		//var_dump($minTeams);
 	    $addTeam = $minTeams[rand(0, count($minTeams) - 1)];
 	    $this->players[$player->getName()] = $player;
 	    
 		foreach ($this->players as $source) {
 			if (!$addTeam->exists($source)) {
 				$this->sendNameTag($player, $source, '');
-		        
 		    }
 		}
-
 		$player->teleport($addTeam->getSpawn());
 		
 	    return $addTeam->add($player);
 	}
 
 	public function leaveTeam(Player $player, bool $teleport = true) : void{
+		$player->removeBossbar(0);
 		if(!$this->isJoin($player)) return;
 
 		$this->getTeamOf($player)->remove($player);
@@ -140,7 +142,6 @@ class TeamManager{
 		if ($this->existsTeam($teamName)) {
 			return $this->teams[$teamName];
 		}
-		
 		return null;
 	}
 
@@ -159,8 +160,8 @@ class TeamManager{
 	 */
 	public function getAllPlayers(){
 		$players = [];
-		foreach ($this->players as $playername => $team) {
-			array_push($players, Server::getInstance()->getPlayer($playername));
+		foreach ($this->teams as $team) {
+			$players = array_merge($players, $team->getAllPlayers());
 		}
 
 		return $players;
@@ -173,13 +174,25 @@ class TeamManager{
 		return $this->teams;
 	}
 
+	public function getAllPoints() : int{
+		$points = 0;
+		foreach ($this->teams as $team) {
+			$points += $team->getPoint();
+		}
+
+		return $points;
+	}
+
 	public function leaveAll()
 	{
 		foreach ($this->players as $playername => $player) {
-			$this->leaveTeam($player, false);
-			//unset($this->players[$playername]);
+			$this->leaveTeam($player, true);
 		}
-		
+	}
+
+	public function setArea(Position $pos, Int $num){
+		$this->AreaPvP->getConfig()->setNested($pos->getLevel()->getName() . '.pos' . $num, implode(',', [$pos->x, $pos->y, $pos->z]));
+		$this->AreaPvP->saveConfig();
 	}
 
     // This function is based on Entity::sendData()

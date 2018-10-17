@@ -16,8 +16,10 @@ class Team {
 	public $name;
 	public $textColor;
 	
-	/** @var int */
+	/** @var float */
 	public $points;
+
+	/** @var Int */
 	public $blockColor;
 	
 	/** @var Player[] */
@@ -40,7 +42,8 @@ class Team {
 		if (!$this->exists($player)) {
 			$this->players[$player->getName()] = $player;
 			$player->setNameTag('§' . $this->textColor . $player->getName());
-			$player->sendMessage(AreaPvP::translate('team.join',['color' => $this->textColor, 'name' => $this->getName()]));
+			//$player->sendMessage(AreaPvP::translate('team.join',['color' => $this->textColor, 'name' => $this->getName()]));
+			$player->addTitle('You are §' . $this->textColor . $this->getName() . ' Team', 'Let\'s enjoy this game!', 5, 40, 5);
 			$player->setAllowMovementCheats(true);
 			$player->setSpawn($this->spawn ?? Server::getInstance()->getDefaultLevel()->getSpawnLocation());
 			return true;
@@ -64,12 +67,12 @@ class Team {
 		return isset($this->players[$player->getName()]);
 	}
 
-	public function addPoint(Int $point = 1){
+	public function addPoint(float $point = 1){
 		$this->points += $point;
 	}
 
 	public function getPoint() : Int {
-		return $this->points;
+		return ceil($this->points);
 	}
 
 	public function setPoint(int $point){
