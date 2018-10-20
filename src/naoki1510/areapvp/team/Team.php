@@ -7,6 +7,7 @@ use pocketmine\Server;
 use pocketmine\level\Position;
 use pocketmine\math\Vector3;
 use naoki1510\areapvp\AreaPvP;
+use naoki1510\nametagapi\NameTagAPI;
 
 class Team {
 	/** @var TeamManager */
@@ -41,9 +42,10 @@ class Team {
 	public function add(Player $player) : bool {
 		if (!$this->exists($player)) {
 			$this->players[$player->getName()] = $player;
-			$player->setNameTag('§' . $this->textColor . $player->getName());
-			//$player->sendMessage(AreaPvP::translate('team.join',['color' => $this->textColor, 'name' => $this->getName()]));
-			$player->addTitle('You are §' . $this->textColor . $this->getName() . ' Team', 'Let\'s enjoy this game!', 5, 40, 5);
+			//$player->setNameTag('§' . $this->textColor . $player->getName());
+			NameTagAPI::getInstance()->setColor($player, $this->textColor);
+			$player->sendMessage(AreaPvP::translate('team.join',['color' => $this->textColor, 'name' => $this->getName()]));
+			//$player->addTitle('You are §' . $this->textColor . $this->getName() . ' Team', 'Let\'s enjoy this game!', 5, 40, 5);
 			$player->setAllowMovementCheats(true);
 			$player->setSpawn($this->spawn ?? Server::getInstance()->getDefaultLevel()->getSpawnLocation());
 			return true;
