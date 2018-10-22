@@ -101,8 +101,10 @@ class AreaPvP extends PluginBase implements Listener
             $this->getConfig()->getNested('game.minPlayers', 2),
             $this->TeamManager
         );
+        // エリアに関するタスク
         $this->getScheduler()->scheduleRepeatingTask($this->GameTask, $this->getConfig()->get('CheckInterval', 0.1) * 20);
 
+        // ポイントを知らせるタスク
         $this->SendMessageTask = new SendMessageTask($this, $this->TeamManager);
         $this->getScheduler()->scheduleRepeatingTask($this->SendMessageTask, 10);
 
