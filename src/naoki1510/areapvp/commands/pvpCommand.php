@@ -57,6 +57,15 @@ class pvpCommand extends Command
                     
                 }
                 break;
+
+            case 'leave':
+                if ($sender instanceof Player) {
+                    $this->TeamManager->leaveTeam($sender);
+                    
+                    break;
+                } else {
+                    $sender->sendMessage('You can use this in game');
+                }
             
             default:
                 if ($sender instanceof Player) {
