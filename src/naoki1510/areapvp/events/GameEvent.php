@@ -13,9 +13,9 @@ abstract class GameEvent extends Event
     /** @var Level */
     protected $gameLevel;
 
-    public function __construct(Level $gamelevel)
+    public function __construct(Level $gamelevel, TeamManager $manager)
     {
-
+        $this->gameLevel = $gameLevel;
     }
 
 
