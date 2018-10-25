@@ -3,6 +3,7 @@
 namespace naoki1510\areapvp\team;
 
 use naoki1510\areapvp\AreaPvP;
+use naoki1510\areapvp\tasks\PlayerTeleportTask;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\entity\Entity;
@@ -81,7 +82,10 @@ class TeamManager{
 	 */
 	public function joinTeam(Player $player) : bool{
 		if($this->isJoin($player)){
-			$player->teleport($this->getTeamOf($player)->getSpawn());
+			//$player->teleport($this->getTeamOf($player)->getSpawn());
+			//$spawn = $this->getTeamOf($player)->getSpawn();
+			//$spawn->getLevel()->loadChunk($spawn->getFloorX() >> 4, $spawn->getFloorY() >> 4);
+			//$this->AreaPvP->getScheduler()->scheduleDelayedTask(new PlayerTeleportTask($player, $spawn), 30);
 			return false;
 		}
 	    $minTeams = [];
@@ -102,7 +106,14 @@ class TeamManager{
 				$this->sendNameTag($player, $source, '');
 		    }
 		}
-		$player->teleport($addTeam->getSpawn());
+		$spawn = $addTeam->getSpawn();
+		for ($x = -1; $x <= 1; $x++) {
+			for ($z = -1; $z <= 1; $z++) {
+				$spawn->getLevel()->loadChunk(($spawn->getFloorX() >> 4) + $x, ($spawn->getFloorZ() >> 4) + $z);
+			}
+		}
+		//$player->teleport($addTeam->getSpawn());
+		$this->AreaPvP->getScheduler()->scheduleDelayedTask(new PlayerTeleportTask($player, $spawn), 20);
 		
 	    return $addTeam->add($player);
 	}
@@ -234,7 +245,6 @@ class TeamManager{
 	// use this when gamelevel was changed
 	public function reloadRespawn(){
 		foreach ($this->teams as $name => $team) {
-
 			$spawndata = $this->teamConfig->getNested($name . '.respawns.' . $this->AreaPvP->getGameLevel()->getName() . '.' . $name, 'not set');
 			if (substr_count($spawndata, ',') == 3) {
 				list($x, $y, $z, $level) = explode(',', $spawndata);
@@ -245,6 +255,5 @@ class TeamManager{
 
 			$team->setSpawn($respawn);
 		}
-
 	}
 }

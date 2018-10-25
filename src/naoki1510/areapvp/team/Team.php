@@ -8,6 +8,7 @@ use pocketmine\level\Position;
 use pocketmine\math\Vector3;
 use naoki1510\areapvp\AreaPvP;
 use naoki1510\nametagapi\NameTagAPI;
+use pocketmine\utils\TextFormat;
 
 class Team {
 	/** @var TeamManager */
@@ -56,7 +57,8 @@ class Team {
 	public function remove(Player $player) : bool {
 		if ($this->exists($player)) {
 			unset($this->players[$player->getName()]);
-			$player->setNameTag($player->getName());
+			//$player->setNameTag($player->getName());
+			NameTagAPI::getInstance()->setColor($player, TextFormat::RESET);
 			//$player->sendMessage(AreaPvP::translate('team.leave', ['color' => $this->textColor, 'name' => $this->getName()]));
 			$player->setAllowMovementCheats(false);
 			$player->setSpawn(Server::getInstance()->getDefaultLevel()->getSpawnLocation());

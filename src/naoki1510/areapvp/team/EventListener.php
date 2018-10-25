@@ -61,11 +61,4 @@ class EventListener implements Listener
             }
         }
     }
-
-    public function onQuit(PlayerQuitEvent $event)
-    {
-        if ($this->TeamManager->isJoin($event->getPlayer())) {
-            $this->TeamManager->leaveTeam($event->getPlayer());
-        }
-    }
 }
