@@ -1,6 +1,7 @@
 <?php
 namespace naoki1510\areapvp;
 
+use naoki1510\areapvp\EventListener;
 use naoki1510\areapvp\commands\pvpCommand;
 use naoki1510\areapvp\commands\setareaCommand;
 use naoki1510\areapvp\commands\setspCommand;
@@ -9,6 +10,7 @@ use naoki1510\areapvp\tasks\GameTask;
 use naoki1510\areapvp\tasks\SendMessageTask;
 use naoki1510\areapvp\team\Team;
 use naoki1510\areapvp\team\TeamManager;
+use naoki1510\kitplugin\KitPlugin;
 use onebone\economyapi\EconomyAPI;
 use pocketmine\Player;
 use pocketmine\Server;
@@ -91,7 +93,7 @@ class AreaPvP extends PluginBase implements Listener
         // About config
         $this->saveDefaultConfig();
         // register Listener
-        $this->getServer()->getPluginManager()->registerEvents($this, $this);
+        $this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
         // register commands
         $this->getServer()->getCommandMap()->register('areapvp', new pvpCommand($this, $this->TeamManager));
         $this->getServer()->getCommandMap()->register('areapvp', new setspCommand($this, $this->TeamManager));
@@ -113,14 +115,13 @@ class AreaPvP extends PluginBase implements Listener
     public function start(){
         //$ev = new GameStartEvent;
         //$ev->call();
-
         $this->GameTask->setCount(0);
-        $this->running = true;
+        //$this->running = true;
 
         $levelnames = $this->getConfig()->get("worlds", ['pvp']);
-        $level = Server::getInstance()->getLevelByName($levelnames[rand(0, count($levelnames) - 1)]);
+        $level = Server::getInstance()->getLevelByName($levelnames[$i = rand(0, count($levelnames) - 1)]);
         if(!$level instanceof Level){
-            $this->getLogger()->warning('ワールドが見つかりません。');
+            $this->getLogger()->warning('ワールドが見つかりません。(' . $levelnames[$i] . ')');
             $level = Server::getInstance()->getDefaultLevel();
         }
         $this->gameLevel = $level;
@@ -139,6 +140,7 @@ class AreaPvP extends PluginBase implements Listener
     {
         $this->running = false;
         $points = [];
+        // チームが一つだけかどうかのフラグ
         $oneteam = true;
         foreach ($this->TeamManager->getAllTeams() as $team) {
             if (empty($points[$team->getPoint()])) {
@@ -155,7 +157,14 @@ class AreaPvP extends PluginBase implements Listener
             foreach ($this->TeamManager->getAllPlayers() as $player) {
                 if ($winteam->exists($player)) {
                     $player->addTitle('§cYou win!!', '§6Congratulations!', 2, 36, 2);
+                    // お金あげる
                     $this->economy->addMoney($player, $winteam->getPoint(), false, "AreaPvP");
+                    // 経験値
+                    $kitplugin = $this->getServer()->getPluginManager()->getPlugin('KitPlugin');
+                    if($kitplugin instanceof KitPlugin){
+                        $kitplugin->addExp($player, null, $winteam->getPoint());
+                    }
+                    //var_dump($winteam->getPoint());
                 } else {
                     $player->addTitle('§9You Lose...', '§6Let\'s win next time', 2, 36, 2);
                 }
@@ -182,18 +191,34 @@ class AreaPvP extends PluginBase implements Listener
         return $this->getConfig()->getNested('game.duration', 180);
     }
 
+    /**
+     * 使わない
+     */
     public function getInterval() : Int {
         return $this->getConfig()->getNested('game.interval', 15);
+    }
+
+    /**
+     * 使わない
+     */
+    public function isRunning() : bool {
+        return $this->running ?? false;
     }
 
     public function getGameTask() : GameTask {
         return $this->GameTask;
     }
 
-    public function isRunning() : bool {
-        return $this->running ?? false;
+    public function getTeamManager() : TeamManager{
+        return $this->TeamManager;
     }
 
+    /**
+     * Configで設定されたSafeBlockかどうか調べる。
+     * 
+     * @param Block $block check block.
+     * @param Player|null $player You should pass $player to this function if you want to check color.
+     */
     public function isSafeBlock(Block $block, ?Player $player = null) : bool{
         if(empty($player)){
             try {
@@ -207,9 +232,10 @@ class AreaPvP extends PluginBase implements Listener
         }else{
             try {
                 $safeblock = Item::fromString($this->getConfig()->getNested('block.safe', 'stained_glass'));
-                $teamcolor = $this->TeamManager->getTeamOf($player)->getColor('block');
+                $teamcolor = $this->TeamManager->isJoin($player) ? $this->TeamManager->getTeamOf($player)->getColor('block') : null;
+                //var_dump($safeblock, $teamcolor, $block->getVariant());
                 if ($block->getId() === $safeblock->getId()
-                    && $block->getDamage() === $teamcolor)
+                    && $block->getVariant() === $teamcolor)
                     return true;
             } catch (\InvalidArgumentException $e) {
                 $this->getLogger()->warning('SafeBlock is invalid');
@@ -219,68 +245,9 @@ class AreaPvP extends PluginBase implements Listener
         return false;
     }
 
-    /* Event */
-    public function onDrop(PlayerDropItemEvent $e){
-        if(in_array($e->getPlayer()->getLevel()->getName(), $this->getConfig()->get('worlds'))){
-            $e->setCancelled();
-        }
-    }
-
-    // Damage on safeblock
-    public function onEntityDamage(EntityDamageEvent $event) : void
+    public function isGameLevel(Level $level)
     {
-        $entity = $event->getEntity();
-        $world = $entity->getLevel();
-        $block = $world->getBlock($entity->subtract(0, 0.5))->getId() ? $world->getBlock($entity->subtract(0, 1.5)) : $world->getBlock($entity->subtract(0, 0.5));
-
-        if($entity instanceof Player && $this->TeamManager->isJoin($entity)){
-            //if($this->isSafeBlock($block, $entity)){
-            if($this->isSafeBlock($block)){
-                $event->setCancelled();
-            }
-        }
-    }
-
-    public function onMove(PlayerMoveEvent $e)
-    {
-        $player = $e->getPlayer();
-        $level = $player->getLevel();
-        $block = ($level->getBlock($player->subtract(0, 0.5))->getId() == 0) ? $level->getBlock($player->subtract(0, 1.5)) : $level->getBlock($player->subtract(0, 0.5));
-        if ($this->TeamManager->isJoin($player)) {
-            if ($this->isSafeBlock($block, $player)) {
-                $player->setHealth($player->getMaxHealth());
-                $player->setFood($player->getMaxFood());
-            }
-        }
-    }
-
-    public function onPlayerDeath(PlayerDeathEvent $event) : void
-    {
-        $victim = $event->getPlayer();
-        if ($victim->getLastDamageCause() instanceof EntityDamageByEntityEvent) {
-            if ($victim->getLastDamageCause()->getDamager() instanceof Player) {
-                if ($victim->getLevel() == $this->gameLevel) {
-                    $killer = $victim->getLastDamageCause()->getDamager();
-                    if($this->TeamManager->getTeamOf($killer) !== null) $this->TeamManager->getTeamOf($killer)->addPoint($this->getConfig()->getNested('game.killpoint'), 100);
-                    
-                    $drops = [
-                        Item::fromString('cooked_beef')->setCount(3),
-                        Item::get(Item::WOOD, 0, 8),
-                        Item::get(Item::PLANKS, 0, 16),
-                        Item::get(Item::COBBLESTONE, 0, 8)
-                    ];
-                    
-                    $event->setDrops($drops);
-                    EconomyAPI::getInstance()->addMoney($killer, $this->getConfig()->getNested('game.killpoint'), 100);
-                }
-            }
-        }
-
-        if ($victim->getLevel() == $this->gameLevel) {
-            if ($this->TeamManager->getTeamOf($victim) !== null) $this->TeamManager->getTeamOf($victim)->addPoint($this->getConfig()->getNested('game.deathpoint'), -10);
-
-            $event->setDrops([]);
-        }
+        return $level === $this->gameLevel;
     }
 
     /** @param SignChangeEvent|Sign $sign */
@@ -293,70 +260,10 @@ class AreaPvP extends PluginBase implements Listener
                 $sign->setLine(1, '§l§eタップでPvPに参加!!');
                 $sign->setLine(2, '§cルールを読んでから');
                 $sign->setLine(3, '§c参加してください');
-                
+
             }
         } catch (\BadMethodCallException $e) {
             $this->getLogger()->warning($e->getMessage());
-        }
-    }
-
-    public function onSignChange(SignChangeEvent $e)
-    {
-        $this->reloadSign($e);
-    }
-
-    public function onPlayerTap(PlayerInteractEvent $e)
-    {
-        $player = $e->getPlayer();
-        if ($player->isSneaking()) return;
-
-        $block = $e->getBlock();
-        switch ($block->getId()) {
-            // 看板
-            case Block::WALL_SIGN:
-            case Block::SIGN_POST:
-                $sign = $block->getLevel()->getTile($block->asPosition());
-
-                if ($sign instanceof Sign && preg_match('/^(§[0-9a-fklmnor])*\[(§[0-9a-fklmnor])*pvp(§[0-9a-fklmnor])*\]$/iu', trim($sign->getLine(0))) == 1) {
-                    $this->reloadSign($sign);
-                    if(!$this->TeamManager->isJoin($player))
-                    $this->TeamManager->joinTeam($player);
-                }
-                break;
-
-            default:
-                return;
-                break;
-        }
-        $e->setCancelled();
-    }
-
-    public function onQuit(PlayerQuitEvent $event)
-    {
-        if ($this->TeamManager->isJoin($event->getPlayer())) {
-            $team = $this->TeamManager->getTeamOf($event->getPlayer());
-            $this->leaver[$event->getPlayer()->getName()] = $team;
-            $team->remove($event->getPlayer());
-        }
-    }
-
-    public function onJoin(PlayerJoinEvent $event){
-        $player = $event->getPlayer();
-        if($player->getLevel() === $this->gameLevel && empty($this->leaver[$player->getName()])){
-            $this->getLogger()->info('Moving and join Team');
-            $this->TeamManager->joinTeam($player);
-        }elseif(!empty($this->leaver[$player->getName()])){
-            $this->getLogger()->info('Moving and rejoin Team');
-            ($this->leaver[$player->getName()])->add($player);
-        }
-    }
-
-    public function onMoveWorld(EntityLevelChangeEvent $e){
-        $player = $e->getEntity();
-        if($player instanceof Player){
-            if(!$this->TeamManager->isJoin($player)){
-                $player->removeBossbar(0);
-            }
         }
     }
 }

@@ -60,7 +60,7 @@ class pvpCommand extends Command
 
             case 'leave':
                 if ($sender instanceof Player) {
-                    $this->TeamManager->leaveTeam($sender);
+                    $this->TeamManager->leaveTeam($sender, true);
                     
                     break;
                 } else {

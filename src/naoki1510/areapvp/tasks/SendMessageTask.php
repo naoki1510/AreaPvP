@@ -49,7 +49,6 @@ class SendMessageTask extends Task
         foreach ($this->TeamManager->getAllTeams() as $team) {
             $message .= '§' . $team->getColor('text') . $team->getName() . ':' . $team->getPoint() . ' §r';
         }
-        //\rsort($points);
 
         $duration = $this->AreaPvP->getGameDuration();
         $count = $this->AreaPvP->getGameTask()->getCount();
@@ -73,7 +72,7 @@ class SendMessageTask extends Task
             $this->bossbar->setHealthPercent($countdown / $duration * 1000);
             //$player->addBossbar($this->bossbar);
 
-            if ($countdown < 6 && $this->TeamManager->isJoin($player) && $count !== $this->lastcount) {
+            if ($countdown && $countdown < 6 && $this->TeamManager->isJoin($player) && $count !== $this->lastcount) {
                 $player->addTitle('§6' . $countdown, '', 2, 16, 2);
             }
         }

@@ -130,7 +130,7 @@ class Team {
 	
 	public function getColor(string $type = null) {
 
-		switch ($type) {
+		switch (strtolower($type)) {
 			case 'text':
 				return $this->textColor;
 				break;

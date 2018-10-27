@@ -81,11 +81,7 @@ class TeamManager{
 	 * @return bool
 	 */
 	public function joinTeam(Player $player) : bool{
-		if($this->isJoin($player)){
-			//$player->teleport($this->getTeamOf($player)->getSpawn());
-			//$spawn = $this->getTeamOf($player)->getSpawn();
-			//$spawn->getLevel()->loadChunk($spawn->getFloorX() >> 4, $spawn->getFloorY() >> 4);
-			//$this->AreaPvP->getScheduler()->scheduleDelayedTask(new PlayerTeleportTask($player, $spawn), 30);
+		if($this->isJoin($player)) {
 			return false;
 		}
 	    $minTeams = [];
@@ -113,13 +109,13 @@ class TeamManager{
 				$spawn->getLevel()->loadChunk(($spawn->getFloorX() >> 4) + $x, ($spawn->getFloorZ() >> 4) + $z);
 			}
 		}
-		//$player->teleport($addTeam->getSpawn());
-		$this->AreaPvP->getScheduler()->scheduleDelayedTask(new PlayerTeleportTask($player, $spawn), 20);
+		$player->teleport($addTeam->getSpawn());
+		//$this->AreaPvP->getScheduler()->scheduleDelayedTask(new PlayerTeleportTask($player, $spawn), 20);
 		
 	    return $addTeam->add($player);
 	}
 
-	public function leaveTeam(Player $player, bool $teleport = true) : void{
+	public function leaveTeam(Player $player, bool $teleport = false) : void{
 		$player->removeBossbar(0);
 		if(!$this->isJoin($player)) return;
 
@@ -205,45 +201,6 @@ class TeamManager{
 	public function setArea(Position $pos, Int $num){
 		$this->AreaPvP->getConfig()->setNested($pos->getLevel()->getName() . '.pos' . $num, implode(',', [$pos->x, $pos->y, $pos->z]));
 		$this->AreaPvP->saveConfig();
-	}
-
-    // This function is based on Entity::sendData()
-    /**
-     * @deprecated use Entity::sendData();
-     */
-    public function sendNameTag($targetplayer, Player $sourceplayer, String $nametag) : void{
-		if(!is_array($targetplayer)){
-			$targetplayer = [$targetplayer];
-		}
-
-		$pk = new SetEntityDataPacket();
-		$pk->entityRuntimeId = $sourceplayer->getId();
-		$pk->metadata[Entity::DATA_NAMETAG] = [Entity::DATA_TYPE_STRING, $nametag];
-		
-		$remove = new RemoveEntityPacket();
-		$remove->entityUniqueId = $sourceplayer->getId();
-		$add = new AddPlayerPacket();
-		$add->uuid = $sourceplayer->getUniqueId();
-		$add->username = $nametag;
-		$add->entityRuntimeId = $sourceplayer->getId();
-		$add->position = $sourceplayer->asVector3();
-		$add->motion = $sourceplayer->getMotion();
-		$add->yaw = $sourceplayer->yaw;
-		$add->pitch = $sourceplayer->pitch;
-		$add->item = $sourceplayer->getInventory()->getItemInHand();
-		$add->metadata = $sourceplayer->getDataPropertyManager()->getAll();
-		$add->metadata[Entity::DATA_NAMETAG] = [Entity::DATA_TYPE_STRING, $nametag];
-		
-
-		foreach($targetplayer as $p){
-			if($p === $sourceplayer){
-				continue;
-			}
-			$p->sendDataPacket(clone $pk);
-			$p->sendDataPacket(clone $remove);
-			$p->sendDataPacket(clone $add);
-			
-		}
 	}
 
 	// use this when gamelevel was changed

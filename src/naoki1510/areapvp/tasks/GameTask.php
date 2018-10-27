@@ -29,7 +29,7 @@ class GameTask extends Task{
     private $areapos;
 
     /** @var Team */
-    public $pointTeam;
+    public $lastPointTeam;
 
     /** @var Int */
     public $minPlayer;
@@ -47,57 +47,55 @@ class GameTask extends Task{
 
     public function onRun(int $currentTick) {
         $gameLevel = $this->areaPvP->getGameLevel();
-        if($this->areaPvP->isRunning()){
-            $teamsOnBlock = [];
-            $playersOnBlock = [];
-            $playerCount = 0;
+        $teamsOnBlock = [];
+        $playersOnBlock = [];
+        $playerCount = 0;
 
-            foreach ($gameLevel->getPlayers() as $player) {
-                if (count($gameLevel->getPlayers()) < $this->minPlayer) {
-                    $player->sendTip(
-                        AreaPvP::translate(
-                            "game.lessplayers",
-                            ["count" => $this->minPlayer - count($gameLevel->getPlayers())]
-                        )
-                    );
-                    continue;
-                }
-
-                $blockUnderPlayerId = $gameLevel->getBlock($player->subtract(0, 0.5))->getId() ? : $gameLevel->getBlock($player->subtract(0, 1.5))->getId();
-
-                if ($blockUnderPlayerId === $this->areaBlock->getId()) {
-                    
-                    if ($this->teamManager->isJoin($player)) {
-                        $playerTeam = $this->teamManager->getTeamOf($player);
-                        $teamsOnBlock[$playerTeam->getName()] = $playerTeam;
-                        array_push($playersOnBlock, $player);
-                        $playerCount++;
-                        $this->areaBlock = $gameLevel->getBlock($player->subtract(0, 0.5))->getId() ? $gameLevel->getBlock($player->subtract(0, 0.5)) : $gameLevel->getBlock($player->subtract(0, 1.5));
-                    }
-                }
-            }
-            if (count($teamsOnBlock) === 1 && !empty($this->areaBlock)) {
-                // Configで設定できた方がいいかも？
-                /** @var Team $team */
-                $team = array_shift($teamsOnBlock);
-                //var_dump($team->getAllPlayers(), $this->teamManager->getAllPlayers());
-                $ratio = 1 + 1 / count($this->teamManager->getAllTeams()) - count($team->getAllPlayers()) / count($this->teamManager->getAllPlayers());
-                $ratio2 = 1 + 1 / count($this->teamManager->getAllTeams()) - ($this->teamManager->getAllPoints() != 0 ? $team->getPoint() / $this->teamManager->getAllPoints() : 0);
-                $point = 1 * count($playersOnBlock) * $ratio * $ratio2;
-                $team->addPoint($point);
-                foreach ($playersOnBlock as $player) {
-                    EconomyAPI::getInstance()->addMoney($player, ceil($point));
-                }
-                $this->changeBlock($gameLevel, $team->getColor('block'));
-                $this->pointTeam = $team;
-            }elseif($this->areaBlock->isValid()){
-                $this->changeBlock($gameLevel, 0);
-                $this->pointTeam = null;
+        foreach ($gameLevel->getPlayers() as $player) {
+            if (count($gameLevel->getPlayers()) < $this->minPlayer) {
+                $player->sendTip(
+                    AreaPvP::translate(
+                        "game.lessplayers",
+                        ["count" => $this->minPlayer - count($gameLevel->getPlayers())]
+                    )
+                );
+                continue;
             }
 
-            if($this->count >= $this->areaPvP->getGameDuration()){
-                $this->areaPvP->finish();
+            $blockUnderPlayerId = $gameLevel->getBlock($player->subtract(0, 0.5))->getId() ? : $gameLevel->getBlock($player->subtract(0, 1.5))->getId();
+
+            if ($blockUnderPlayerId === $this->areaBlock->getId()) {
+
+                if ($this->teamManager->isJoin($player)) {
+                    $playerTeam = $this->teamManager->getTeamOf($player);
+                    $teamsOnBlock[$playerTeam->getName()] = $playerTeam;
+                    array_push($playersOnBlock, $player);
+                    $playerCount++;
+                    $this->areaBlock = $gameLevel->getBlock($player->subtract(0, 0.5))->getId() ? $gameLevel->getBlock($player->subtract(0, 0.5)) : $gameLevel->getBlock($player->subtract(0, 1.5));
+                }
             }
+        }
+        if (count($teamsOnBlock) === 1 && !empty($this->areaBlock)) {
+            /** @var Team $team */
+            $team = array_shift($teamsOnBlock);
+            // カウントによるポイントの速度調整
+            $ratio1 = 1 + 1 / count($this->teamManager->getAllTeams()) - count($team->getAllPlayers()) / count($this->teamManager->getAllPlayers());
+            // 人数によるポイントの速度調整
+            $ratio2 = 1 + 1 / count($this->teamManager->getAllTeams()) - ($this->teamManager->getAllPoints() != 0 ? $team->getPoint() / $this->teamManager->getAllPoints() : 0);
+            $point = 1 * count($playersOnBlock) * $ratio1 * $ratio2;
+            $team->addPoint($point);
+            foreach ($playersOnBlock as $player) {
+                EconomyAPI::getInstance()->addMoney($player, ceil($point));
+            }
+            $this->changeBlock($gameLevel, $team->getColor('block'));
+            $this->lastPointTeam = $team;
+        } elseif ($this->areaBlock->isValid()) {
+            $this->changeBlock($gameLevel, 0);
+            $this->lastPointTeam = null;
+        }
+
+        if ($currentTick % 20 < $this->areaPvP->getConfig()->get('CheckInterval', 0.1) * 20  && $this->count >= $this->areaPvP->getGameDuration()) {
+            $this->areaPvP->finish();
         }
 
         if ($currentTick % 20 < $this->areaPvP->getConfig()->get('CheckInterval', 0.1) * 20 && count($gameLevel->getPlayers()) >= $this->minPlayer) {
@@ -141,6 +139,6 @@ class GameTask extends Task{
      */
     public function getLastPointTeam()
     {
-        return $this->pointTeam ?? null;
+        return $this->lastPointTeam ?? null;
     }
 }
