@@ -334,16 +334,19 @@ class AreaPvP extends PluginBase implements Listener
     public function onQuit(PlayerQuitEvent $event)
     {
         if ($this->TeamManager->isJoin($event->getPlayer())) {
-            $this->TeamManager->leaveTeam($event->getPlayer());
-            $this->leaver[$event->getPlayer()->getName()] = $this->TeamManager->getTeamOf($event->getPlayer());
+            $team = $this->TeamManager->getTeamOf($event->getPlayer());
+            $this->leaver[$event->getPlayer()->getName()] = $team;
+            $team->remove($event->getPlayer());
         }
     }
 
     public function onJoin(PlayerJoinEvent $event){
         $player = $event->getPlayer();
         if($player->getLevel() === $this->gameLevel && empty($this->leaver[$player->getName()])){
+            $this->getLogger()->info('Moving and join Team');
             $this->TeamManager->joinTeam($player);
         }elseif(!empty($this->leaver[$player->getName()])){
+            $this->getLogger()->info('Moving and rejoin Team');
             ($this->leaver[$player->getName()])->add($player);
         }
     }
