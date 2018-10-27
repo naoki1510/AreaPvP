@@ -103,7 +103,8 @@ class TeamManager{
 	    
 		foreach ($this->players as $source) {
 			if (!$addTeam->exists($source)) {
-				$this->sendNameTag($player, $source, '');
+				//$this->sendNameTag($player, $source, '');
+				$player->sendData($source);
 		    }
 		}
 		$spawn = $addTeam->getSpawn();
@@ -207,6 +208,9 @@ class TeamManager{
 	}
 
     // This function is based on Entity::sendData()
+    /**
+     * @deprecated use Entity::sendData();
+     */
     public function sendNameTag($targetplayer, Player $sourceplayer, String $nametag) : void{
 		if(!is_array($targetplayer)){
 			$targetplayer = [$targetplayer];

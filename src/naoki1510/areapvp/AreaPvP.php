@@ -112,7 +112,7 @@ class AreaPvP extends PluginBase implements Listener
 
     public function start(){
         //$ev = new GameStartEvent;
-        //($ev)->call();
+        //$ev->call();
 
         $this->GameTask->setCount(0);
         $this->running = true;
@@ -219,7 +219,7 @@ class AreaPvP extends PluginBase implements Listener
         return false;
     }
 
-    // Event
+    /* Event */
     public function onDrop(PlayerDropItemEvent $e){
         if(in_array($e->getPlayer()->getLevel()->getName(), $this->getConfig()->get('worlds'))){
             $e->setCancelled();
