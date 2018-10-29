@@ -99,7 +99,6 @@ class TeamManager{
 	    
 		foreach ($this->players as $source) {
 			if (!$addTeam->exists($source)) {
-				//$this->sendNameTag($player, $source, '');
 				$player->sendData($source);
 		    }
 		}

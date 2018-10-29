@@ -73,7 +73,7 @@ class EventListener implements Listener
                 if ($victim->getLevel() === $this->AreaPvP->getGameLevel()) {
                     $killer = $victim->getLastDamageCause()->getDamager();
                     if ($this->AreaPvP->getTeamManager()->getTeamOf($killer) !== null) 
-                    $this->AreaPvP->getTeamManager()->getTeamOf($killer)->addPoint($this->getConfig()->getNested('game.killpoint'), 100);
+                    $this->AreaPvP->getTeamManager()->getTeamOf($killer)->addPoint($this->AreaPvP->getConfig()->getNested('game.killpoint'), 100);
 
                     $drops = [
                         Item::fromString('cooked_beef')->setCount(3),
@@ -87,7 +87,7 @@ class EventListener implements Listener
                     }
 
                     $event->setDrops($drops);
-                    EconomyAPI::getInstance()->addMoney($killer, $this->getConfig()->getNested('game.killpoint'), 100);
+                    EconomyAPI::getInstance()->addMoney($killer, $this->AreaPvP->getConfig()->getNested('game.killpoint'), 100);
                 }
             }
         }
