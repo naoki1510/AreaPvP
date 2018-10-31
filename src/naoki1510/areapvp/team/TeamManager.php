@@ -108,8 +108,8 @@ class TeamManager{
 				$spawn->getLevel()->loadChunk(($spawn->getFloorX() >> 4) + $x, ($spawn->getFloorZ() >> 4) + $z);
 			}
 		}
-		$player->teleport($addTeam->getSpawn());
-		//$this->AreaPvP->getScheduler()->scheduleDelayedTask(new PlayerTeleportTask($player, $spawn), 20);
+		//$player->teleport($addTeam->getSpawn());
+		$this->AreaPvP->getScheduler()->scheduleDelayedTask(new PlayerTeleportTask($player, $spawn), 20);
 		
 	    return $addTeam->add($player);
 	}
